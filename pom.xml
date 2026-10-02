@@ -13,6 +13,7 @@
         <module>ride-service</module>
         <module>matching-service</module>
         <module>location-service</module>
+        <module>driver-service</module>
     </modules>
 
     <parent>

@@ -126,9 +126,7 @@ public class LocationService {
 
         Double driverLongitude = driverPoint.getX();
         Double driverLatitude = driverPoint.getY();
-        System.out.println("driverId " + driverId);
-        System.out.println("driver lon " + driverLongitude);
-        System.out.println("driver lat " + driverLatitude);
+
         return calculateDistance(pickupLatitude, pickupLongitude, driverLatitude, driverLongitude);
     }
 }

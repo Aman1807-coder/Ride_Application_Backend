@@ -5,7 +5,7 @@ spring:
   application:
     name: ride-service
 
-  #MySQL Database
+  #PostgreSQL Database
   datasource:
     url: jdbc:postgresql://localhost:5432/ride_db
     username: root
