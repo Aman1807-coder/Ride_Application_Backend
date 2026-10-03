@@ -29,10 +29,6 @@ spring:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-#Location Service URL
-location:
-  service:
-    url: http://localhost:8082
 
 #Actuator
 management:
@@ -40,3 +36,12 @@ management:
     web:
       exposure:
         include: health, info
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+  instance:
+    hostname: localhost
+    prefer-ip-address: false

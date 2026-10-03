@@ -14,6 +14,8 @@
         <module>matching-service</module>
         <module>location-service</module>
         <module>driver-service</module>
+        <module>service-registry</module>
+        <module>api-gateway</module>
     </modules>
 
     <parent>

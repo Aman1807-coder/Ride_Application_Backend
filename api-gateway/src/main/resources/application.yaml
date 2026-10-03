@@ -1,0 +1,37 @@
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+
+            - id: ride-service
+              uri: lb://ride-service
+              predicates:
+                - Path=/api/v1/rides/**
+
+            - id: location-service
+              uri: lb://location-service
+              predicates:
+                - Path=/api/v1/locations/**
+
+            - id: driver-service
+              uri: lb://driver-service
+              predicates:
+                - Path=/api/v1/drivers/**
+
+server:
+  port: 8080
+
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+
+  instance:
+    hostname: localhost
+    prefer-ip-address: false
