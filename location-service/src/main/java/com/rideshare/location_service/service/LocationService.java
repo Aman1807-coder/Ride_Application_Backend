@@ -62,7 +62,7 @@ public class LocationService {
     }
 
     public List<NearByDriverResponse> findNearByDrivers(
-            Double latitude, Double longitude, Double radius) {
+            Double latitude, Double longitude, Double radius)  {
 
         log.info("Finding drivers near lat : {} long : {} within {} KM", latitude, longitude, radius);
 
@@ -118,7 +118,7 @@ public class LocationService {
         List<Point> points = redisTemplate.opsForGeo()
                 .position(DRIVER_GEO_KEY, driverId);
 
-        if (points == null || points.isEmpty()) {
+        if (points == null || points.isEmpty() || points.get(0) == null) {
             throw new DriverNotFoundException("Driver with driver id " + driverId + " not found" );
         }
 

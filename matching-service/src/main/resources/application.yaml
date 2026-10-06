@@ -45,3 +45,23 @@ eureka:
   instance:
     hostname: localhost
     prefer-ip-address: false
+
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      locationService:
+        slidingWindowType: COUNT_BASED
+        slidingWindowSize: 5
+        minimumNumberOfCalls: 5
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 2
+  retry:
+    instances:
+      locationService:
+        maxAttempts: 3
+        waitDuration: 1s
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        enableRandomizedWait: true

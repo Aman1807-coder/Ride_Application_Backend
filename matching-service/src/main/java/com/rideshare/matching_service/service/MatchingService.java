@@ -5,11 +5,14 @@ import com.rideshare.matching_service.client.LocationServiceClient;
 import com.rideshare.matching_service.dto.NearByDriverResponse;
 import com.rideshare.matching_service.event.RideMatchedEvent;
 import com.rideshare.matching_service.event.RideRequestedEvent;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -71,13 +74,23 @@ public class MatchingService {
      * 2. Score each driver and pick the best one
      */
 
-    public void matchDriverForRide(RideRequestedEvent event) {
+    @Retry(name = "locationService", fallbackMethod = "locationServiceFallback")
+    @CircuitBreaker(name = "locationService")
+    public List<NearByDriverResponse> callGetNearByDrivers(RideRequestedEvent event) {
 
         List<NearByDriverResponse> nearByDrivers = locationServiceClient.getNearByDrivers(
                 event.getPickupLatitude(),
                 event.getPickupLongitude(),
                 DEFAULT_SEARCH_RADIUS_KM
         );
+
+        return nearByDrivers;
+    }
+
+
+    public void matchDriverForRide(RideRequestedEvent event) {
+
+        List<NearByDriverResponse> nearByDrivers = callGetNearByDrivers(event);
 
         if (nearByDrivers.isEmpty()){
             log.warn("No drivers found near ride");
@@ -106,5 +119,18 @@ public class MatchingService {
 
         kafkaTemplate.send(RIDE_MATCHED_TOPIC, event.getRideId(), matchedEvent);
         log.info("RideMatchedEvent published with driver id {}", matchedEvent.getRideId());
+    }
+
+    public void locationServiceFallback (
+            RideRequestedEvent event,
+            Throwable throwable) {
+
+        log.error(
+                "Location Service unavailable. " +
+                        "Circuit breaker fallback triggered. lat={}, lon={}, error={}",
+                event.getPickupLatitude(),
+                event.getPickupLongitude(),
+                throwable.getMessage()
+        );
     }
 }

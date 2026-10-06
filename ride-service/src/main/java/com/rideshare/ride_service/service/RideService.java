@@ -152,9 +152,16 @@ public class RideService {
     public MatchedRideResponse getRideById(String rideId) {
         Ride ride = rideRepository.findById(rideId)
                 .orElseThrow(() -> new RuntimeException("Ride not found"));
-        Double driverDistanceToPickup = locationServiceClient.getDriverDistanceToPickup(
-                new DriverDistanceToPickupRequest(ride.getDriverId(), ride.getPickupLongitude(), ride.getPickupLatitude())
-        );
+
+        Double driverDistanceToPickup = null;
+
+        try {
+            driverDistanceToPickup = locationServiceClient.getDriverDistanceToPickup(
+                    new DriverDistanceToPickupRequest(ride.getDriverId(), ride.getPickupLongitude(), ride.getPickupLatitude()));
+        } catch(Exception e) {
+            log.warn("Could not fetch driver distance for ride {}. Returning ride without distance.",
+                    rideId, e);
+        }
 
         return mapToMatchedRideResponse(ride, driverDistanceToPickup);
     }
