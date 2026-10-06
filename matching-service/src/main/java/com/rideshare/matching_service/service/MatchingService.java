@@ -5,6 +5,7 @@ import com.rideshare.matching_service.client.LocationServiceClient;
 import com.rideshare.matching_service.dto.NearByDriverResponse;
 import com.rideshare.matching_service.event.RideMatchedEvent;
 import com.rideshare.matching_service.event.RideRequestedEvent;
+import com.rideshare.matching_service.repository.ProcessedRideRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class MatchingService {
 
     private final LocationServiceClient locationServiceClient;
     private final KafkaTemplate<String, RideMatchedEvent> kafkaTemplate;
+    private final ProcessedRideRepository processedRideRepository;
 
     private static final String RIDE_MATCHED_TOPIC = "ride.matched";
     private static final double DEFAULT_SEARCH_RADIUS_KM = 5.0;
@@ -89,6 +91,11 @@ public class MatchingService {
 
 
     public void matchDriverForRide(RideRequestedEvent event) {
+
+        if (processedRideRepository.existsById(event.getRideId())) {
+            log.warn("Duplicate ride event received. rideId={}", event.getRideId());
+            return;
+        }
 
         List<NearByDriverResponse> nearByDrivers = callGetNearByDrivers(event);
 
