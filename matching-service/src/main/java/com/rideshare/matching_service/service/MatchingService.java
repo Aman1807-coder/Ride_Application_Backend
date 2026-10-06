@@ -5,6 +5,7 @@ import com.rideshare.matching_service.client.LocationServiceClient;
 import com.rideshare.matching_service.dto.NearByDriverResponse;
 import com.rideshare.matching_service.event.RideMatchedEvent;
 import com.rideshare.matching_service.event.RideRequestedEvent;
+import com.rideshare.matching_service.model.ProcessedRide;
 import com.rideshare.matching_service.repository.ProcessedRideRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
@@ -13,6 +14,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -92,6 +94,9 @@ public class MatchingService {
 
     public void matchDriverForRide(RideRequestedEvent event) {
 
+        /*
+        * first check if this ride is already not consumed
+        */
         if (processedRideRepository.existsById(event.getRideId())) {
             log.warn("Duplicate ride event received. rideId={}", event.getRideId());
             return;
@@ -123,6 +128,9 @@ public class MatchingService {
                 assignedDriver.getLongitude(),
                 assignedDriver.getDistanceInKm()
         );
+
+        processedRideRepository.save(
+                new ProcessedRide(event.getRideId(), Instant.now()));
 
         kafkaTemplate.send(RIDE_MATCHED_TOPIC, event.getRideId(), matchedEvent);
         log.info("RideMatchedEvent published with driver id {}", matchedEvent.getRideId());
