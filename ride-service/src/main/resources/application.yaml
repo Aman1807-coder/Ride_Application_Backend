@@ -26,6 +26,12 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JacksonJsonSerializer
+
+      properties:
+        retry.backoff.ms: 1000
+        request.timeout.ms: 5000
+        delivery.timeout.ms: 15000
+
     consumer:
       group-id: ride-service-group
       auto-offset-reset: earliest

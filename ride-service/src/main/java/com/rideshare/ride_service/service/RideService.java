@@ -129,7 +129,17 @@ public class RideService {
                 savedRide.getDropAddress()
         );
 
-        kafkaTemplate.send(RIDE_REQUESTED_TOPIC, savedRide.getId(), event);
+        kafkaTemplate.send(RIDE_REQUESTED_TOPIC, savedRide.getId(), event)
+                .whenComplete((result, exception) -> {
+
+                    if (exception != null) {
+                        log.error("Failed to publish RideRequestedEvent: " + exception.getMessage());
+                        return;
+                    }
+
+                    log.info("RideRequestedEvent published successfully");
+                });
+
         log.info("RideRequestedEvent published to Kafka for ride: {}", savedRide.getId());
 
         //Update status to Matching

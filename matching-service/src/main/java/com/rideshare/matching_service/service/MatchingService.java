@@ -8,6 +8,7 @@ import com.rideshare.matching_service.event.RideRequestedEvent;
 import com.rideshare.matching_service.model.ProcessedRide;
 import com.rideshare.matching_service.repository.ProcessedRideRepository;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
+import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
 import io.github.resilience4j.retry.annotation.Retry;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,6 +27,7 @@ import java.util.Optional;
 public class MatchingService {
 
     private final LocationServiceClient locationServiceClient;
+    private final LocationCallService locationCallService;
     private final KafkaTemplate<String, RideMatchedEvent> kafkaTemplate;
     private final ProcessedRideRepository processedRideRepository;
 
@@ -78,19 +80,6 @@ public class MatchingService {
      * 2. Score each driver and pick the best one
      */
 
-    @Retry(name = "locationService", fallbackMethod = "locationServiceFallback")
-    @CircuitBreaker(name = "locationService")
-    public List<NearByDriverResponse> callGetNearByDrivers(RideRequestedEvent event) {
-
-        List<NearByDriverResponse> nearByDrivers = locationServiceClient.getNearByDrivers(
-                event.getPickupLatitude(),
-                event.getPickupLongitude(),
-                DEFAULT_SEARCH_RADIUS_KM
-        );
-
-        return nearByDrivers;
-    }
-
 
     public void matchDriverForRide(RideRequestedEvent event) {
 
@@ -102,7 +91,7 @@ public class MatchingService {
             return;
         }
 
-        List<NearByDriverResponse> nearByDrivers = callGetNearByDrivers(event);
+        List<NearByDriverResponse> nearByDrivers = locationCallService.callGetNearByDrivers(event);
 
         if (nearByDrivers.isEmpty()){
             log.warn("No drivers found near ride");

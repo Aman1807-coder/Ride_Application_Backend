@@ -17,7 +17,6 @@ import java.util.UUID;
 public class ProcessedRide {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     private String rideId;
 
     private Instant processedAt;

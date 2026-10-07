@@ -26,15 +26,7 @@ public class RideEventConsumer {
             topics = "ride.requested",
             groupId = "matching-service-group"
     )
-    public void consumeRideRequestedEvent(RideRequestedEvent event){
-        try{
-            matchingService.matchDriverForRide(event);
-        }
-        catch (Exception e){
-            log.error("Error processing ride request: {} - {}",
-                    event.getRideId(), e.getMessage());
-
-            // In production: send to dead letter queue for retry
-        }
+    public void consumeRideRequestedEvent(RideRequestedEvent event) {
+        matchingService.matchDriverForRide(event);
     }
 }
