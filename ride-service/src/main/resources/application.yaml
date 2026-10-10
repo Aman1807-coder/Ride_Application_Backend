@@ -1,6 +1,14 @@
 #Application
 server:
   port: 8083
+  tomcat:
+    accesslog:
+      enabled: true
+      directory: logs
+      prefix: access
+      suffix: .log
+      pattern: '%h %t "%r" %s %D'
+
 spring:
   application:
     name: ride-service
@@ -63,3 +71,9 @@ eureka:
   instance:
     hostname: localhost
     prefer-ip-address: false
+
+logging:
+  level:
+    org.springframework.web: DEBUG
+    org.springframework.security: DEBUG
+    org.apache.catalina: INFO

@@ -1,13 +1,17 @@
 package com.rideshare.ride_service.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.rideshare.ride_service.client.LocationServiceClient;
 import com.rideshare.ride_service.dto.DriverDistanceToPickupRequest;
 import com.rideshare.ride_service.dto.MatchedRideResponse;
 import com.rideshare.ride_service.dto.RideRequest;
 import com.rideshare.ride_service.dto.RideResponse;
 import com.rideshare.ride_service.event.RideRequestedEvent;
+import com.rideshare.ride_service.model.OutboxEvent;
 import com.rideshare.ride_service.model.Ride;
 import com.rideshare.ride_service.model.RideStatus;
+import com.rideshare.ride_service.repository.OutboxEventRepository;
 import com.rideshare.ride_service.repository.RideRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -15,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jspecify.annotations.Nullable;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -27,9 +32,10 @@ import java.util.stream.Collectors;
 public class RideService {
 
     private final RideRepository rideRepository;
-    private final KafkaTemplate<String, RideRequestedEvent> kafkaTemplate;
     private final LocationServiceClient locationServiceClient;
-    private static final String RIDE_REQUESTED_TOPIC = "ride.requested";
+    private final ObjectMapper objectMapper;
+    private final OutboxEventRepository outboxEventRepository;
+
 
     private MatchedRideResponse mapToMatchedRideResponse(Ride ride, Double driverDistanceToPickup) {
 
@@ -99,7 +105,8 @@ public class RideService {
         return Math.round(fare * 100.0) / 100.0;
     }
 
-    public RideResponse requestRide (@Valid RideRequest rideRequest) {
+    @Transactional(rollbackFor = JsonProcessingException.class)
+    public RideResponse requestRide (@Valid RideRequest rideRequest) throws JsonProcessingException {
 
         log.info("new ride requested from rider: {}", rideRequest.getRiderId());
 
@@ -117,7 +124,7 @@ public class RideService {
 
         Ride savedRide = rideRepository.save(ride);
 
-        //2. publish event to kafka
+        //2. Create Kafka event
         RideRequestedEvent event = new RideRequestedEvent(
                 savedRide.getId(),
                 savedRide.getRiderId(),
@@ -129,22 +136,21 @@ public class RideService {
                 savedRide.getDropAddress()
         );
 
-        kafkaTemplate.send(RIDE_REQUESTED_TOPIC, savedRide.getId(), event)
-                .whenComplete((result, exception) -> {
-
-                    if (exception != null) {
-                        log.error("Failed to publish RideRequestedEvent: " + exception.getMessage());
-                        return;
-                    }
-
-                    log.info("RideRequestedEvent published successfully");
-                });
-
-        log.info("RideRequestedEvent published to Kafka for ride: {}", savedRide.getId());
-
-        //Update status to Matching
+        //3. Update status to Matching
         savedRide.setRideStatus(RideStatus.MATCHING);
         rideRepository.save(savedRide);
+
+        String payload = objectMapper.writeValueAsString(event);
+
+        // 4. Create and Save event in Outbox
+        OutboxEvent outboxEvent = new OutboxEvent(
+                null,
+                "RideRequestedEvent",
+                payload,
+                false
+        );
+
+        outboxEventRepository.save(outboxEvent);
 
         return mapToResponse(savedRide);
     }

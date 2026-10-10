@@ -1,5 +1,6 @@
 package com.rideshare.ride_service.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.rideshare.ride_service.dto.MatchedRideResponse;
 import com.rideshare.ride_service.dto.RideRequest;
 import com.rideshare.ride_service.dto.RideResponse;
@@ -23,8 +24,8 @@ public class RideController {
 
     @PostMapping("/request")
     public ResponseEntity<RideResponse> requestRide (
-            @Valid @RequestBody RideRequest rideRequest) {
-
+            @Valid @RequestBody RideRequest rideRequest) throws JsonProcessingException {
+        log.info("Ride request reached controller");
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(rideService.requestRide(rideRequest));
     }
